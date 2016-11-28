@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "influxdb"
+  namespace: "kube-system"
+  labels:
+    app: "influxdb"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"system", "value":"kube-system"}]'      
+      labels:
+        service: "influxdb"
+        name: "influxdb"
+        app: "influxdb"
+    spec:
+      containers:
+        - name: "influxdb"
+          image: "influxdb:0.13.0" #"influxdb:0.13.0" 1.0.0-beta2
+          ports:
+            - containerPort: 8083
+            - containerPort: 8086
+          env:
+            - name: INFLUXDB_DATA_QUERY_LOG_ENABLED
+              value: "true"
+          imagePullPolicy: "Always"

@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    k8s-app: heapster
+    version: v6
+    app: heapster
+  name: heapster
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 5
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"system", "value":"kube-system"}]'
+      labels:
+        app: heapster
+    spec:
+      containers:
+      - name: heapster
+        image: kubernetes/heapster:canary
+        imagePullPolicy: Always
+        command:
+        - /heapster
+        - --source=kubernetes:https://192.168.30.230
+        - --sink=influxdb:http://influxdb.kube-system.svc.cluster.local:8086/
