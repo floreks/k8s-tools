@@ -1,0 +1,270 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv0003
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "slow"
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /tmp
+    server: 172.17.0.2
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: myclaim
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "slow"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  selector:
+    matchLabels:
+      release: "stable"
+    matchExpressions:
+      - {key: environment, operator: In, values: [dev]}
+---
+apiVersion: storage.k8s.io/v1beta1
+kind: StorageClass
+metadata:
+   name: slow
+provisioner: kubernetes.io/rbd
+parameters:
+    monitors: 127.0.0.1:6789
+    adminId: admin
+    adminSecretName: ceph-secret-admin
+    adminSecretNamespace: "kube-system"
+    pool: kube
+    userId: kube
+    userSecretName: ceph-secret-user
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "grafana"
+  labels:
+    app: "grafana"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        service: "grafana"
+        name: "grafana"
+        app: "grafana"
+    spec:
+      containers:
+        - name: "grafana"
+          image: "grafana/grafana:3.1.0-beta1"
+          env:
+            - name: GF_SERVER_ROOT_URL
+              value: http://grafana.default.svc.cluster.local:3000
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: secret
+          ports:
+            - containerPort: 3000
+          imagePullPolicy: "Always"
+---
+apiVersion: extensions/v1beta1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  # these labels can be applied automatically
+  # from the labels in the pod template if not set
+  # labels:
+  #   app: guestbook
+  #   tier: frontend
+spec:
+  # this replicas value is default
+  # modify it according to your case
+  replicas: 3
+  # selector can be applied automatically
+  # from the labels in the pod template if not set
+  # selector:
+  #   matchLabels:
+  #     app: guestbook
+  #     tier: frontend
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google-samples/gb-frontend:v4
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+          # If your cluster config does not include a dns service, then to
+          # instead access environment variables to find service host
+          # info, comment out the 'value: dns' line above, and uncomment the
+          # line below.
+          # value: env
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-scaler
+spec:
+  scaleTargetRef:
+    kind: ReplicaSet
+    name: frontend
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: nginx
+spec:
+  replicas: 3
+  selector:
+    app: nginx
+  template:
+    metadata:
+      name: nginx
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: bugreport-daemonset
+spec:
+  template:
+    metadata:
+      labels:
+        app: bugreport
+    spec:
+      containers:
+      - name: bugreport-container
+        image: gcr.io/bug-project/testcontainer:tag0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: "nginx"
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: gcr.io/google_containers/nginx-slim:0.8
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: www
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+spec:
+  template:
+    metadata:
+      name: pi
+    spec:
+      containers:
+      - name: pi
+        image: perl
+        command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+  - image: busybox
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: IfNotPresent
+    name: busybox
+  restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    app: grafana
+spec:
+  type: "LoadBalancer"
+  ports:
+  - port: 3000
+    protocol: TCP
+    targetPort: 3000
+    name: external
+  selector:
+    app: grafana
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: echomap
+spec:
+  rules:
+  - host: foo.bar.com
+    http:
+      paths:
+      - path: /foo
+        backend:
+          serviceName: echoheaders-x
+          servicePort: 80
+  - host: bar.baz.com
+    http:
+      paths:
+      - path: /bar
+        backend:
+          serviceName: echoheaders-y
+          servicePort: 80
+      - path: /foo
+        backend:
+          serviceName: echoheaders-x
+          servicePort: 80

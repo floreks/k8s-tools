@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Configuration to deploy head version of the Dashboard UI.
+# Configuration to deploy release version of the Dashboard UI.
 #
 # Example usage: kubectl create -f <this_file>
 
@@ -23,23 +23,22 @@ items:
   apiVersion: v1
   metadata:
     labels:
-      app: kubernetes-dashboard-head
-    name: kubernetes-dashboard-head
+      app: cloud-load-control
+      version: v1.1.0-beta3
+    name: cloud-load-control
     namespace: kube-system
   spec:
     replicas: 1
     selector:
-      app: kubernetes-dashboard-head
+      app: cloud-load-control
     template:
       metadata:
-        annotations:
-          scheduler.alpha.kubernetes.io/tolerations: '[{"key":"system", "value":"kube-system"}]'
         labels:
-          app: kubernetes-dashboard-head
+          app: cloud-load-control
       spec:
         containers:
-        - name: kubernetes-dashboard-head
-          image: kubernetesdashboarddev/kubernetes-dashboard-amd64:head
+        - name: cloud-load-control
+          image: docker.io/fest/cloud-load-control-amd64:v1.1.0
           imagePullPolicy: Always
           ports:
           - containerPort: 9090
@@ -48,7 +47,7 @@ items:
             # Uncomment the following line to manually specify Kubernetes API server Host
             # If not specified, Dashboard will attempt to auto discover the API server and connect
             # to it. Uncomment only if the default does not work.
-            # - --apiserver-host=http://my-address:port
+            # - --apiserver-host=127.0.0.1:6443
           livenessProbe:
             httpGet:
               path: /
@@ -59,8 +58,8 @@ items:
   apiVersion: v1
   metadata:
     labels:
-      app: kubernetes-dashboard-head
-    name: dashboard-head
+      app: cloud-load-control
+    name: cloud-load-control
     namespace: kube-system
   spec:
     type: NodePort
@@ -68,4 +67,4 @@ items:
     - port: 80
       targetPort: 9090
     selector:
-      app: kubernetes-dashboard-head
+      app: cloud-load-control

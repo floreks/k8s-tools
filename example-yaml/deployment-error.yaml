@@ -1,0 +1,72 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: 2017-04-07T11:02:35Z
+  generation: 5
+  labels:
+    app: dex
+  name: dex
+  namespace: kube-system
+  resourceVersion: "32952"
+  selfLink: /apis/extensions/v1beta1/namespaces/kube-system/deployments/dex
+  uid: b4a21bb2-1b81-11e7-a7af-0050569430d5
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: dex
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dex
+    spec:
+      containers:
+      - command:
+        - /usr/local/bin/dex
+        - serve
+        - /etc/dex/cfg/config.yaml
+        image: quay.io/coreos/dex:v2.0.0
+        imagePullPolicy: IfNotPresent
+        name: dex
+        ports:
+        - containerPort: 5556
+          name: https
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /etc/dex/cfg
+          name: config
+        - mountPath: /etc/dex/tls
+          name: tls
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.yaml
+            path: config.yaml
+          name: dex
+        name: config
+      - name: tls
+        secret:
+          defaultMode: 420
+          secretName: 10.233.0.1.tls
+status:
+  conditions:
+  - lastTransitionTime: 2017-04-07T13:58:46Z
+    lastUpdateTime: 2017-04-07T13:58:46Z
+    message: Found new replica set "dex-3542908681"
+    reason: FoundNewReplicaSet
+    status: "True"
+    type: Progressing

@@ -39,8 +39,6 @@ spec:
   #     tier: backend
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"tenant-1", "value":"default"}]'
       labels:
         app: redis
         role: master
@@ -96,8 +94,6 @@ spec:
   #     tier: backend
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"tenant-1", "value":"default"}]'
       labels:
         app: redis
         role: slave
@@ -160,8 +156,6 @@ spec:
   #     tier: frontend
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"tenant-1", "value":"default"}]'
       labels:
         app: guestbook
         tier: frontend

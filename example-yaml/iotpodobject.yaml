@@ -1,0 +1,14 @@
+apiVersion: fujitsu.com/v1
+kind: IotPod
+metadata:
+  name: test
+  namespace: default
+  labels:
+    app: test
+    version: v1
+spec:
+  hostNetwork: true
+  containers:
+    - image: tutum/curl
+      name: tutum-curl
+      command: [ "sleep", "10000" ]

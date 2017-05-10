@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    version: v1
+    app: ubuntu-sshd
+  name: ubuntu-sshd
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 5
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/tolerations: '[{"key":"system", "value":"kube-system"}]'
+      labels:
+        app: ubuntu-sshd
+    spec:
+      containers:
+      - name: ubuntu-sshd
+        image: rastasheep/ubuntu-sshd:14.04
+        imagePullPolicy: Always

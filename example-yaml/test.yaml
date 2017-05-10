@@ -1,0 +1,17 @@
+{
+    "apiVersion": "extensions/v1beta1",
+    "description": "A specification of a IoT Pod than runs on IoT devices",
+    "kind": "ThirdPartyResource",
+    "metadata": {
+        "creationTimestamp": "2017-01-19T12:36:50Z",
+        "name": "iot-pod.fujitsu.com",
+        "resourceVersion": "1448",
+        "selfLink": "/apis/extensions/v1beta1/thirdpartyresourcesiot-pod.fujitsu.com",
+        "uid": "f31b7c98-de43-11e6-ab56-901b0e532516"
+    },
+    "versions": [
+        {
+            "name": "v1"
+        }
+    ]
+}

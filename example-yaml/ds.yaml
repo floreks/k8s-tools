@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: bugreport-daemonset
+spec:
+  template:
+    metadata:
+      labels:
+        app: bugreport
+    spec:
+      containers:
+      - name: bugreport-container
+        image: gcr.io/bug-project/testcontainer:tag0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80

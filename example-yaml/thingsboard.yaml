@@ -1,0 +1,138 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: cassandra-pv
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: cassandra-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: cassandra
+  name: cassandra
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9042
+  selector:
+    app: cassandra
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: thingsboard
+  name: thingsboard
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      name: web
+    - port: 1883
+      name: mqtt
+    - port: 5683
+      protocol: UDP
+      name: coap
+  selector:
+    app: thingsboard
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: thingsboard-db-schema
+spec:
+  template:
+    metadata:
+      name: thingsboard-db-schema
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      containers:
+      - name: db-schema
+        image: floreks/thingsboard-db-schema
+        command:
+          - "./install_schema.sh"
+        env:
+        - name: SKIP_SCHEMA_CREATION
+          value: "false"
+        - name: SKIP_SYSTEM_DATA
+          value: "false"
+        - name: SKIP_DEMO_DATA
+          value: "false"
+        - name: CASSANDRA_URL
+          value: "cassandra"
+      restartPolicy: Never
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cassandra
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cassandra
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      volumes:
+      - name: cassandra-storage
+        persistentVolumeClaim:
+          claimName: cassandra-pvc
+      containers:
+      - name: cassandra
+        image: cassandra:3.9
+        volumeMounts:
+          - mountPath: /var/lib/cassandra
+            name: cassandra-storage
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: thingsboard
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: thingsboard
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      containers:
+      - name: thingsboard
+        image: thingsboard/application:1.2.2
+        # Delay start to make sure that cassandra is up and schema i deployed
+        command: ["/bin/bash"]
+        args: ["-c", "sleep 60;./run_thingsboard.sh"]
+        env:
+        - name: CASSANDRA_URL
+          value: "cassandra:9042"
+        - name: MQTT_BIND_ADDRESS
+          value: "0.0.0.0"
+        - name: MQTT_BIND_PORT
+          value: "1883"
+        - name: COAP_BIND_ADDRESS
+          value: "0.0.0.0"
+        - name: COAP_BIND_PORT
+          value: "5683"

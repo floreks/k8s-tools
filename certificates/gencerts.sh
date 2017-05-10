@@ -6,7 +6,7 @@ OPENSSL_BASE_KUBELET_CNF="openssl-base-kubelet.cnf"
 
 # Master and service ip
 K8S_MASTER_IP="192.168.30.230"
-K8S_SERVICE_IP="10.0.0.1"
+K8S_SERVICE_IP="10.3.0.1"
 
 # Super user name
 ADMIN_USERNAME="kube-admin"
@@ -65,7 +65,7 @@ function generate::ca::cert {
 
 function generate::apiserver::cert {
   # Prepare config file for apiserver
-  generate::ssl::apiserver::conf "${K8S_SERVICE_IP},${K8S_MASTER_IP}" $CLUSTER_DOMAIN "apiserver"
+  generate::ssl::apiserver::conf ${K8S_SERVICE_IP} "" "apiserver"
 
   # Generate api server certificate
   openssl genrsa -out "${OUTPUT_DIR}/apiserver.key" 2048 &> /dev/null
